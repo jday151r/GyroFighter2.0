@@ -47,11 +47,9 @@ public class PlayerController : MonoBehaviour
         if (!rBody) rBody = GetComponent<Rigidbody>();
         forwardSpeed = defaultForwardSpeed;
     }
-    void Update()
+    private void Update()
     {
         deltaTime = Time.deltaTime * 60;
-
-        #region Input/Movement
 
         if (Input.GetKey(KeyCode.LeftShift))
         {
@@ -65,6 +63,10 @@ public class PlayerController : MonoBehaviour
             boostEffects.SetActive(false);
             forwardSpeed = defaultForwardSpeed;
         }
+    }
+    void LateUpdate()
+    {
+        #region Input/Movement
 
         //Get input from input axes
         inputVector = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
@@ -77,12 +79,8 @@ public class PlayerController : MonoBehaviour
             velocity.y += (inputVector.y * moveSpeed);
         //Set the forward speed
         velocity.z = (forwardSpeed + velocity.z) / 2;
-        //Cut velocity by drag
-        velocity *= movementDrag; ;
-        //Rotate the plane based on its velocity, by the given maximum P/Y/R angles
-        model.transform.eulerAngles = new Vector3(-velocity.y * pitchAngle * deltaTime,
-                                                  velocity.x * yawAngle * deltaTime,
-                                                  ((-velocity.x * deltaTime * rollAngle) + (barrelRotation * barrelLerp)));
+        //Cut the velocity by drag
+        velocity *= movementDrag;
         //Translate by the velocity after it is calculated
         transform.Translate(velocity * deltaTime);
         //Clamp MUST come after input, so the player isn't clamped before their inputs are suppressed
@@ -90,12 +88,19 @@ public class PlayerController : MonoBehaviour
                                          Mathf.Clamp(transform.position.y, -screenBoundaries.y, screenBoundaries.y),
                                          transform.position.z);
 
-        //Barrel roll (double-press left or right)
+        //Barrel roll(double-press left or right)
         barrelLerp = Mathf.Lerp(barrelLerp, 0, barrelLerpFactor * deltaTime);
         if (Input.GetKeyDown(KeyCode.A) && barrelLerp < barrelLimit) BarrelRoll('A', false);
         if (Input.GetKeyDown(KeyCode.D) && barrelLerp < barrelLimit) BarrelRoll('D', true);
 
         #endregion
+    }
+    void FixedUpdate()
+    {
+        //Rotate the plane based on its velocity, by the given maximum P/Y/R angles
+        model.transform.rotation = Quaternion.Euler(-velocity.y * pitchAngle * deltaTime,
+                                                  velocity.x * yawAngle * deltaTime,
+                                                  (-velocity.x * deltaTime * rollAngle));// + (barrelRotation * barrelLerp));
     }
 
     void BarrelRoll(char lastKey, bool direction)
